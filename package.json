@@ -1,10 +1,10 @@
 {
   "name": "hello-express",
   "version": "0.0.1",
-  "description": "BeerCode Ekonomi Altyapısı :: discord.gg/ew3dpTu4Z5",
-  "main": "beercode.js",
+  "description": "BY: TONY BOT",
+  "main": "tony.js",
   "scripts": {
-    "start": "node beercode.js"
+    "start": "node tony.js"
   },
   "dependencies": {
     "express": "^4.17.1",
