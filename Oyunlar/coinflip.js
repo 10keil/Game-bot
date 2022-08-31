@@ -1,79 +1,139 @@
-const Discord = require('discord.js')
-const db = require('quick.db')
-const ms = require('parse-ms')
-exports.run = async (client, message, args) => {
-  let para = db.fetch(`para_${message.author.id}`) 
-  
-//=== BEERCODE (https://discord.gg/ew3dpTu4Z5) BEERCODE ==\\
-  let timeout = 7000;
-  
-  let crime = await db.fetch(`bahisoynama_${message.author.id}`)
+/*
+ * RoYo Bot for Discord
+ * Copyright (C) 2019 Christopher Thai
+ * This software is licensed under Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+ * For more information, see README.md and LICENSE
+  */
 
-      if (crime !== null && timeout - (Date.now() - crime) > 0) {
-        
-        let time = ms(timeout - (Date.now() - crime));
-//== BEERCODE (https://discord.gg/ew3dpTu4Z5) BEERCODE ==\\
-        message.channel.send(new Discord.MessageEmbed()
-                      .setColor("#ffff00")
-                        .setAuthor(message.author.tag, message.author.avatarURL({dynamic: true}))
-                        .setDescription(`<a:emoji_22:870143282594865213> You Have A Cooldown For __coinflip__
-                        **Time left**
-                        ${time.seconds ? time.seconds + 'seconds' : 'try again!'}`))
-      } else {
-  var miktar = args[0]
-  if(!miktar) return message.channel.send(new Discord.MessageEmbed()
-                                        .setColor("#ffff00")
-                                        .setAuthor(message.author.tag, message.author.avatarURL({dynamic: true}))
-                                        .setDescription(`You Can't More Than<:emoji_61:867523675304624148> 50,000`))
- if(miktar > 50000) return message.channel.send(new Discord.MessageEmbed()
-                                        .setColor("#ffff00")
-                                        .setAuthor(message.author.tag, message.author.avatarURL({dynamic: true}))
-                                        .setDescription(`You can bet up to 50000 <a:emoji_25:870145821469966406>!`))   
-if(miktar > para) return message.channel.send(new Discord.MessageEmbed()
-//== BEERCODE (https://discord.gg/ew3dpTu4Z5) BEERCODE ==\\
-                                              .setColor("#ffff00")
-                                        .setAuthor(message.author.tag, message.author.avatarURL({dynamic: true}))
-                                        .setDescription(`In your wallet to place a bet ${para ? "just " + para + ' <a:emoji_25:870145821469966406> there is!' : 'you have no money!'}`))
-        const result = [
-          "LOOSELOOSE",
-          "WINWIN",
-          "LOSSELOSSE",
-          "WINWIN",
-          "LOOSELOOSE"
-        ] 
-//== BEERCODE (https://discord.gg/ew3dpTu4Z5) BEERCODE ==\\
-        let awnser = result[Math.floor(Math.random() * result.length)]
-     if (awnser === "LOOSELOOSE") {
- var kaybettin = miktar*2        
-        //////        
-        var text2 = `**<@${message.author.id}> CoinFlip <a:emoji_3:870056915542081557> Choice win Or Lost**`;
-          message.channel.send(text2).then(msg => {
-            setTimeout(() => {
-              msg.edit(`**<@${message.author.id}>spent cowoncy ${-kaybettin} 50000-<a:emoji_8:870059060714700870> and chose heads
-The coin spins...<a:emoji_8:870059060714700870> tail and you lost it all...loose (loose)**`);
-            }, 3000);
-          });
-      await db.set(`bahisoynama_${message.author.id}`, Date.now());   
-      await db.add(`para_${message.author.id}`, -kaybettin);   
-      } else { 
-//== BEERCODE (https://discord.gg/ew3dpTu4Z5) BEERCODE ==\\
-          var kazandın = miktar*2
-        var text2 = `**<@${message.author.id}> CoinFlip <a:emoji_3:870056915542081557> Choice win Or Lost**`;
-          message.channel.send(text2).then(msg => {
-            setTimeout(() => {
-              msg.edit(`**<@${message.author.id}> spent cowoncy ${kazandın} 50,000<a:emoji_10:870059089055592508> and chose heads
-The coin spins...<a:emoji_10:870059089055592508> coinflip win (win)**`);
-            }, 3000);
-          });
-    await db.set(`bahisoynama_${message.author.id}`, Date.now());   
-    await db.add(`para_${message.author.id}`, kazandın);    
-//== BEERCODE (https://discord.gg/ew3dpTu4Z5) BEERCODE ==\\
-        }}}
-exports.conf = {
-  enabled: true,
-  aliases: ["coinflip"],
-};
+const CommandInterface = require('../../CommandInterface.js');
+const altercoinflip = require('../patreon/altercoinflip.js');
 
-exports.help = {
-  name: 'cf',
-};
+const maxBet = 150000;
+const cowoncy = "<:cowoncy:416043450337853441>";
+const spin = "<a:coinflip:436677458339823636>";
+const heads = "<:head:436677933977960478>";
+const random = require('random-number-csprng');
+const tails = "<:tail:436677926398853120>";
+
+module.exports = new CommandInterface({
+
+	alias:["coinflip","cf","coin","flip"],
+
+	args:"[head|tail] {bet}",
+
+	desc:"Flip a coin to earn some cowoncy! You can also shorten the command like in the example!",
+
+	example:["owo coinflip head 25","owo cf t 25"],
+
+	related:["owo money"],
+
+	permissions:["sendMessages"],
+
+	group:["gambling"],
+
+	cooldown:15000,
+	half:90,
+	six:500,
+	bot:true,
+
+	execute: async function(p){
+		let global=p.global,msg=p.msg,con=p.con,args=p.args;
+
+		//Syntax Check
+		let bet = 1,arg1 = args[0];
+		if(global.isInt(arg1)){
+			bet = parseInt(arg1);
+			arg1 = args[1];
+		}else if(arg1&&arg1.toLowerCase()=='all'){
+			bet = "all";
+			arg1 = args[1];
+		}else if(global.isInt(args[1])){
+			bet = parseInt(args[1]);
+		}else if(args[1]&&args[1].toLowerCase()=='all'){
+			bet = "all";
+		}else if(args.length!=1){
+			p.errorMsg(", Invalid arguments!!",3000);
+			p.setCooldown(5);
+			return;
+		}
+
+		//Get user choice
+		let choice = 'h';
+		if(arg1!=undefined)
+			arg1 = arg1.toLowerCase();
+		if(arg1=='heads'||arg1=='h'||arg1=='head')
+			choice = 'h';
+		else if(arg1=='tails'||arg1=='t'||arg1=='tail')
+			choice = 't';
+
+		//Final syntax check
+		if(bet==0){
+			p.errorMsg(", You can't bet 0 dum dum!",3000);
+			p.setCooldown(5);
+			return;
+		}else if(bet<0){
+			p.errorMsg(", Do you understand how cowoncy works..??",3000);
+			p.setCooldown(5);
+			return;
+		}else if(choice==undefined){
+			p.errorMsg(", You must choose either `heads` or `tails`!",3000);
+			p.setCooldown(5);
+			return;
+		}
+
+		let sql = "SELECT money FROM cowoncy WHERE id = "+msg.author.id+";";
+		let result = await p.query(sql);
+		if(result[0]==undefined||result[0].money==0||(bet!="all"&&result[0].money<bet)){
+			p.send("**🚫 | "+msg.author.username+"**, You don't have enough cowoncy!",3000);
+			return;
+		}else{
+			if(bet=="all") bet = result[0].money;
+
+			if (maxBet && bet > maxBet) {
+				bet = maxBet;
+			} else if (bet <= 0) {
+				p.errorMsg(", you don't have any cowoncy silly!",3000);
+				p.setCooldown(5);
+				return;
+			}
+
+			let rand = await random(0,1);
+			let win = false;
+			//tails
+			if(rand==0&&choice=="t")
+				win = true;
+			//heads
+			else if(rand==1&&choice=="h")
+				win = true;
+
+			sql = "UPDATE cowoncy SET money = money "+((win)?"+":"-")+" "+bet+" WHERE id = "+msg.author.id+";";
+			result = await p.query(sql);
+			if (win) {
+				p.logger.incr(`cowoncy`, bet, {type:'coinflip'}, p.msg);
+				p.logger.incr(`gamble`, 1, {type:'coinflip'}, p.msg);
+			} else {
+				p.logger.decr(`cowoncy`, bet * -1, {type:'coinflip'}, p.msg);
+				p.logger.decr(`gamble`, -1, {type:'coinflip'}, p.msg);
+			}
+			let text = "**"+msg.author.username+"** spent **"+cowoncy+" "+(p.global.toFancyNum(bet))+"** and chose "+((choice=='h')?"**heads**":"**tails**");
+			let text2 = text;
+			text2 += "\nThe coin spins... "+((win)?((choice=='h')?heads:tails):((choice=='h')?tails:heads))+" and you ";
+			if(win)
+				text2 += "won **"+cowoncy+" "+(p.global.toFancyNum(bet*2))+"**!!";
+			else
+				text2 += "lost it all... :c";
+			text += "\nThe coin spins... "+spin;
+
+			/* Legendary patreon stuff */
+			text = altercoinflip.alter(p.msg.author.id,text);
+			text2 = altercoinflip.alter(p.msg.author.id,text2);
+
+			let message = await p.send(text)
+			setTimeout(function(){
+				message.edit(text2)
+			},2000);
+			p.quest("gamble");
+		}
+	}
+
+})
